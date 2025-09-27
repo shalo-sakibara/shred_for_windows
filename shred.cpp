@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 #include <io.h>
+#include <windows.h> 
+#include <direct.h> 
+
 
 
 
@@ -20,7 +23,6 @@ std::string random_name_generate(size_t len) {
 
 std::string file_rename(std::string& path)
 {
-	std::setlocale(LC_ALL, "ru");
 	std::fstream file(path, std::ios::binary | std::ios::in | std::ios::out);
 	if (!file) {
 		std::cout << "<!> ERROR File " << path << " didn't open\n";
@@ -67,25 +69,28 @@ void shred(std::string& path, int count = 7) {
 	file.seekg(0, std::ios::beg);
 	for (int c = 0; c < count; c++) {
 		file.seekg(0, std::ios::beg);
-		std::random_device rd;                    // Источник энтропии (аппаратный)
-		std::mt19937 gen(rd());                   // Генератор псевдослучайных чисел, инициализируемый rd
-		std::uniform_int_distribution<> dist(0, 255);   // Равномерное распределение от 0 до 255
+		std::random_device rd;                   
+		std::mt19937 gen(rd());                   
+		std::uniform_int_distribution<> dist(0, 255);   
 
 		std::vector<char> buffer(length_file * 2);
 
 		for (int i = 0; i < length_file; ++i) {
 			int random_byte = dist(gen);
-			std::sprintf(buffer.data() + i * 2, "%02x", random_byte);	
+			sprintf_s(buffer.data() + i * 2, 3, "%02x", random_byte);  	
 		}
 		buffer[length_file * 2] = '\0';
 		file.seekp(0);
 		file.write(buffer.data(), buffer.size());
 		file.flush();
 
-		FILE* f = fopen(renamed_path.c_str(), "rb+");
-		if (f) {
+		FILE* f = nullptr;
+		if (fopen_s(&f, renamed_path.c_str(), "rb+") == 0) {
 			_commit(_fileno(f));
 			fclose(f);
+		}
+		else {
+			std::cout << "Error open file";
 		}
 		
 	}
@@ -95,9 +100,67 @@ void shred(std::string& path, int count = 7) {
 
 }
 
-int main()
+void help() {
+	std::fstream file("message.txt", std::ios::in);
+	if (!file) {
+		std::cout << "<!> ERROR File " << "message.txt" << " didn't open\n";
+		return;
+	}
+	std::string s;
+	while (std::getline(file, s)) {
+		std::cout << s << std::endl;
+	}
+	file.close();
+}
+
+
+
+void dir(char* dirs[], int len, int c, char path[]) {
+	std::cout << "<<Start remove dir(s)>>" << std::endl;
+	std::string path_dir = (std::string)path;
+	std::string path_to_dir;
+	for (int i=2; i < len - 2; i++){
+		std::cout << path_dir + '\\' + dirs[i]<< std::endl;
+	}
+}
+
+void file(char* files[], int len, int c, char path[]) {
+	std::cout << "<<Start remove files>>" << std::endl;
+	std::string path_dir = (std::string)path;
+	std::string path_to_file;
+	std::string file_name;
+	for (int i = 2; i < len - 2; i++) {
+		file_name = (std::string)files[i];
+		path_to_file = path_dir + '\\' + file_name;
+		std::cout << path_to_file << std::endl;
+	}
+}
+
+
+int main(int argc, char* argv[])
 {
-	std::string file_path;
-	std::cin >> file_path;
-	shred(file_path);
+	char buffer[FILENAME_MAX];
+	if (_getcwd(buffer, sizeof(buffer)) == nullptr) { std::wcerr << "Error when getting the current directory\n"; }
+	try {
+		if (argc < 2) {
+			std::cout << "<!> Error. Not enough arguments." << std::endl;
+			return 1;
+		}
+		std::string func = argv[1];
+		int co = 0;
+		if (std::strcmp(argv[argc - 2], "-c") == 0) { 
+			co = std::stoi(argv[argc - 1]);
+		}
+		if (func == "-help") { help(); }
+		else if (func == "-d") { dir(argv, argc, co, buffer); }
+		else if (func == "-f") { file(argv, argc, co, buffer); }
+		else {
+			std::cout << "Unknown option." << std::endl;
+		}
+	}
+	catch (const std::exception& e) {
+		std::cout << "<!> Error: " << e.what() << std::endl;
+	}
+		
+	
 }
