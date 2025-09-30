@@ -1,0 +1,30 @@
+Options
+
+  -d <directory> [<directory> ...]
+    Recursively goes through the specified directories and deletes all files
+    inside them using a defined overwrite algorithm.
+    You can specify one or multiple directories.
+
+  -f <file> [<file> ...]
+    Irreversibly deletes the specified files using the same overwrite algorithm.
+
+  -c <number>
+    Sets the number of overwrite passes before deletion.
+    The higher the number, the more secure the deletion and the less chance to recover.
+    For example, "-c 3" means each file will be overwritten 3 times.
+
+  -help
+    Displays this help message.
+
+Usage examples
+
+  program -d /home/user/docs -c 5
+    Deletes all files in the "/home/user/docs" folder with 5 overwrite passes.
+
+  program -f secret.txt confidential.pdf -c 2
+    Deletes the files "secret.txt" and "confidential.pdf" with 2 overwrite passes.
+
+Recommendations
+
+- Use the -c option to increase security; a value of at least 3 is recommended.
+- Be careful selecting directories and files — recovery after using this utility is impossible.

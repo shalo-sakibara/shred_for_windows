@@ -10,6 +10,38 @@
 
 
 
+std::vector<std::string> cat_dir(const char path[], std::string name_dir) {
+	SetConsoleOutputCP(1251);
+	struct _finddata_t fileinfo;
+	intptr_t handle;
+	std::vector<std::string> files;
+
+	if ((handle = _findfirst(path, &fileinfo)) == -1L) {
+		perror("<!>Error opening the catalog.");
+		return  files;
+	}
+	
+	do {
+		std::string file_name = (std::string)fileinfo.name;
+		if ((file_name.find_last_of('.', -1) == -1) && true) {
+			std::string path_str = (std::string)path;
+			path_str.pop_back();
+			std::string path_new_dir = path_str + '\\' + file_name + '\\' + '*';
+			const char* path_new_dir_char = path_new_dir.data();
+			for (auto& file : cat_dir(path_new_dir_char, name_dir + '\\' + file_name)) {
+				files.push_back(file);
+			}
+			continue;
+		}
+		file_name = name_dir + "\\" + file_name;
+		int len = file_name.length();
+		if ((file_name[len - 1] != '.')) { files.push_back(file_name); }
+	} while (_findnext(handle, &fileinfo) == 0);
+
+	_findclose(handle);
+	return files;
+}
+
 
 std::string random_name_generate(size_t len) {
 	std::string result = "";
@@ -55,7 +87,7 @@ void shred(std::string& path, int count = 7) {
 	std::setlocale(LC_ALL, "ru");
 	std::string renamed_path = file_rename(path);
 	if (renamed_path == "Error") {
-		std::cout << "Error";
+		std::cout << "<!> Error";
 		return;
 	}
 	std::fstream file(renamed_path, std::ios::binary | std::ios::in | std::ios::out);
@@ -119,8 +151,19 @@ void dir(char* dirs[], int len, int c, char path[]) {
 	std::cout << "<<Start remove dir(s)>>" << std::endl;
 	std::string path_dir = (std::string)path;
 	std::string path_to_dir;
+	std::vector<std::vector<std::string>> files_in_dirs;
 	for (int i=2; i < len - 2; i++){
-		std::cout << path_dir + '\\' + dirs[i]<< std::endl;
+		path_to_dir = path_dir + '\\' + dirs[i] + '\\' + '*';
+		const char *path_to_dir_char = path_to_dir.data();
+		files_in_dirs.push_back(cat_dir(path_to_dir_char, dirs[i]));
+	}
+	std::string path_for_rm;
+	for (auto& vec : files_in_dirs) {
+		for (auto& file : vec) {
+			path_for_rm = path_dir + '\\' + file;
+			std::cout << path_for_rm << std::endl;
+			shred(path_for_rm, c);
+		}
 	}
 }
 
@@ -131,20 +174,28 @@ void file(char* files[], int len, int c, char path[]) {
 	std::string file_name;
 	for (int i = 2; i < len - 2; i++) {
 		file_name = (std::string)files[i];
-		path_to_file = path_dir + '\\' + file_name;
-		std::cout << path_to_file << std::endl;
+		if (file_name.find_last_of('.', -1) != -1) {
+			path_to_file = path_dir + '\\' + file_name;
+			std::cout << path_to_file << std::endl;
+			shred(path_to_file, c);
+		}
+		else {
+			std::cerr << "<!> Error: '" << file_name << "' not file!" << std::endl;
+		}
+		
 	}
 }
 
 
 int main(int argc, char* argv[])
 {
+
 	char buffer[FILENAME_MAX];
 	if (_getcwd(buffer, sizeof(buffer)) == nullptr) { std::wcerr << "Error when getting the current directory\n"; }
 	try {
 		if (argc < 2) {
 			std::cout << "<!> Error. Not enough arguments." << std::endl;
-			return 1;
+			return 0;
 		}
 		std::string func = argv[1];
 		int co = 0;
@@ -158,9 +209,9 @@ int main(int argc, char* argv[])
 			std::cout << "Unknown option." << std::endl;
 		}
 	}
+
 	catch (const std::exception& e) {
 		std::cout << "<!> Error: " << e.what() << std::endl;
 	}
-		
 	
 }
